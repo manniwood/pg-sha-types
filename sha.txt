@@ -1,0 +1,252 @@
+
+
+# Download http://api.pgxn.org/dist/sha/1.1.0/sha-1.1.0.zip to /home/myuser/Downloads
+
+# Download http://ftp.postgresql.org/pub/source/v9.3.4/postgresql-9.3.4.tar.bz2 to /home/myuser/Downloads
+
+# Add the postgres user
+
+root@mycomputer:/etc/init.d# adduser postgres
+
+Adding user `postgres' ...
+Adding new group `postgres' (1001) ...
+Adding new user `postgres' (1001) with group `postgres' ...
+Creating home directory `/home/postgres' ...
+Copying files from `/etc/skel' ...
+Enter new UNIX password: 
+Retype new UNIX password: 
+passwd: password updated successfully
+Changing the user information for postgres
+Enter the new value, or press ENTER for the default
+	Full Name []: PostgreSQL
+	Room Number []: none
+	Work Phone []: none
+	Home Phone []: none
+	Other []: none
+Is the information correct? [Y/n]
+
+# Install prerequisites
+
+root@mycomputer:/usr/local/src/postgresql-9.3.4# apt-get install flex
+root@mycomputer:/usr/local/src/postgresql-9.3.4# apt-get install bison build-essential
+root@mycomputer:/usr/local/src/postgresql-9.3.4# apt-get install libreadline6-dev
+root@mycomputer:/usr/local/src/postgresql-9.3.4# apt-get install zlib1g-dev
+root@mycomputer:/usr/local/src/postgresql-9.3.4# apt-get install libossp-uuid-dev
+
+# Unpack the PostgreSQL source code
+
+root@mycomputer:/usr/local/src# cp /home/myuser/Downloads/postgresql-9.3.4.tar.bz2 .
+root@mycomputer:/usr/local/src# tar -xjvf postgresql-9.3.4.tar.bz2 
+root@mycomputer:/usr/local/src# cd postgresql-9.3.4/
+
+# Create runconfigure script
+
+root@mycomputer:/usr/local/src/postgresql-9.3.4# vi runconfigure.sh
+
+# Write a config wrapper script
+
+#!/bin/bash
+
+./configure \
+    --prefix=/usr/local/pg-9.3 \
+    --with-ossp-uuid
+
+# Build
+
+root@mycomputer:/usr/local/src/postgresql-9.3.4# chmod +x runconfigure.sh
+root@mycomputer:/usr/local/src/postgresql-9.3.4# ./runconfigure.sh 
+root@mycomputer:/usr/local/src/postgresql-9.3.4# make
+root@mycomputer:/usr/local/src/postgresql-9.3.4# make install
+
+# Build uuid datatype
+
+root@mycomputer:/usr/local/src/postgresql-9.3.4# cd ./contrib/uuid-ossp
+root@mycomputer:/usr/local/src/postgresql-9.3.4/contrib/uuid-ossp# make
+root@mycomputer:/usr/local/src/postgresql-9.3.4/contrib/uuid-ossp# make install
+
+#### wait! does sql file still need to be run here, too? Why, yes, I think so!
+#### ensure to document this step later, with template1
+
+# Build sha datatypes
+
+$ cd /usr/local/src
+root@mwood-X230:/usr/local/sr$ export PATH=/usr/local/pg-9.3/bin:$PATH
+root@mwood-X230:/usr/local/sr$ which pg_config
+/usr/local/pg-9.3/bin/pg_config
+root@mwood-X230:/usr/local/sr# cp ~mwood/Downloads/sha-1.1.0.zip .
+root@mwood-X230:/usr/local/sr# unzip sha-1.1.0.zip 
+Archive:  sha-1.1.0.zip
+   creating: sha-1.1.0/
+  inflating: sha-1.1.0/common.c      
+  inflating: sha-1.1.0/common.h      
+   creating: sha-1.1.0/expected/
+  inflating: sha-1.1.0/expected/sha.out  
+  inflating: sha-1.1.0/Makefile      
+  inflating: sha-1.1.0/md5.c         
+  inflating: sha-1.1.0/md5.sql.type  
+  inflating: sha-1.1.0/META.json     
+  inflating: sha-1.1.0/README        
+  inflating: sha-1.1.0/sha.c         
+  inflating: sha-1.1.0/sha.sql.type  
+   creating: sha-1.1.0/sql/
+  inflating: sha-1.1.0/sql/sha.sql   
+  inflating: sha-1.1.0/uninstall_sha.sql
+root@mwood-X230:/usr/local/sr# cd sha-1.1.0
+root@mwood-X230:/usr/local/sr# make
+root@mwood-X230:/usr/local/sr# make install
+
+### yes, this part worked! Just have to remember to run the sql later
+
+# Fix the ownerships
+root@mwood-X230:/usr/local/src# chown -R postgres:postgres /usr/local/pg-9.3/
+
+# Initialize postgresql
+
+root@mwood-X230:/usr/local/src# su - postgres
+postgres@mwood-X230:~$ export PATH=/usr/local/pg-9.3/bin:$PATH
+
+postgres@mwood-X230:~$ initdb --pgdata=/usr/local/pg-9.3/data --encoding=UTF8 --locale=C
+The files belonging to this database system will be owned by user "postgres".
+
+
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /usr/local/pg-9.3/data ... ok
+creating subdirectories ... ok
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+creating configuration files ... ok
+creating template1 database in /usr/local/pg-9.3/data/base/1 ... ok
+initializing pg_authid ... ok
+initializing dependencies ... ok
+creating system views ... ok
+loading system objects' descriptions ... ok
+creating collations ... ok
+creating conversions ... ok
+creating dictionaries ... ok
+setting privileges on built-in objects ... ok
+creating information schema ... ok
+loading PL/pgSQL server-side language ... ok
+vacuuming database template1 ... ok
+copying template1 to template0 ... ok
+copying template1 to postgres ... ok
+syncing data to disk ... ok
+
+WARNING: enabling "trust" authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    postgres -D /usr/local/pg-9.3/data
+or
+    pg_ctl -D /usr/local/pg-9.3/data -l logfile start
+
+postgres@mwood-X230:~$ postgres -D /usr/local/pg-9.3/data
+LOG:  database system was shut down at 2014-04-25 12:55:59 EDT
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+
+
+# Now we will have to open another window while this runs in the current window
+
+mwood@mwood-X230:~$ su -
+root@mwood-X230:~# su - postgres
+postgres@mwood-X230:~$ export PATH=/usr/local/pg-9.3/bin:$PATH
+
+postgres@mwood-X230:~$ psql -d template1
+psql (9.3.4)
+Type "help" for help.
+
+template1=# 
+
+
+# Let's load the uuid stuff
+
+template1=# create extension "uuid-ossp";
+CREATE EXTENSION
+
+# Nice! No longer have to source the sql file
+
+# How about sha data type? According to its readme, still have to go old school.
+# So, from within our psql session...
+
+template1=# \i /usr/local/src/sha-1.1.0/sha.sql
+
+# That seems to have worked! Excellent.
+
+# Let's create a user
+
+template1=# create user testuser with createdb createrole createuser password 'testuser';
+CREATE ROLE
+
+# Yup. That worked.
+
+# Let's create a database owned by our user
+
+template1=# create database testdb with owner = testuser;
+CREATE DATABASE
+
+# That seems happy too!
+
+# Let's try to connect as that user
+
+template1=# \q
+postgres@mwood-X230:~$ exit
+exit
+root@mwood-X230:~# exit
+logout
+
+mwood@mwood-X230:~$ psql -U testuser -d testdb
+psql (9.3.1, server 9.3.4)
+Type "help" for help.
+
+testuser@[local]:5432/testdb# 
+
+# It worked! Now let's create a table with some test columns
+
+testuser@[local]:5432/testdb# create table has_md5sums (orig text not null, md5_sum md5hash not null);
+CREATE TABLE
+
+# so far, so good.
+
+testuser@[local]:5432/testdb# insert into has_md5sums (orig, md5_sum) values ('Hello, world!', md5('Hello, world!'));
+INSERT 0 1
+
+testuser@[local]:5432/testdb# select * from has_md5sums ; rollback;
+┌───────────────┬──────────────────────────────────┐
+│     orig      │             md5_sum              │
+├───────────────┼──────────────────────────────────┤
+│ Hello, world! │ 6cd3556deb0da54bca060b4c39479839 │
+└───────────────┴──────────────────────────────────┘
+(1 row)
+
+# Oh, this is very nice.
+
+testuser@[local]:5432/testdb# insert into has_md5sums (orig, md5_sum) values ('Foo, Bar!', md5('Foo, Bar!'));
+INSERT 0 1
+
+testuser@[local]:5432/testdb# select * from has_md5sums order by md5_sum; commit;
+┌───────────────┬──────────────────────────────────┐
+│     orig      │             md5_sum              │
+├───────────────┼──────────────────────────────────┤
+│ Foo, Bar!     │ 39308a19e9814ad95b717634bfec5422 │
+│ Hello, world! │ 6cd3556deb0da54bca060b4c39479839 │
+└───────────────┴──────────────────────────────────┘
+(2 rows)
+
+# Ah, this is fantastic! Now, it is time to make our Java data type for this md5sum.
+
+# Wow, that worked too!
+
+# Possible next steps:
+# - create a datasource that automatically registers the new data type.
+# - make the test cases super-thorough
+# - put this in my blog
+
+
