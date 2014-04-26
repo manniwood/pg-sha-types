@@ -248,5 +248,5 @@ testuser@[local]:5432/testdb# select * from has_md5sums order by md5_sum; commit
 # - create a datasource that automatically registers the new data type.
 # - make the test cases super-thorough
 # - put this in my blog
-
+# - get to work in mybatis
 
