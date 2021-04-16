@@ -1,5 +1,11 @@
 # Manni's PostgreSQL SHA Types
 
+## Project Status: Playground / Abandoned
+
+Just exploring some ideas here. Figured I'd share.
+
+## Summary
+
 PostgreSQL has extensible types, which is sweet, but it's no
 good for the application programmer if those types can't be
 extracted to similar types in the application language.
